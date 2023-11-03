@@ -4,7 +4,7 @@ from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig
 from utils import preprocess_dataset, compute_metrics, run_inference
 
 
-def eval_few_shot_prompting():
+def eval_few_shot_prompting(split, dataset_size):
     model_id = "mistralai/Mistral-7B-Instruct-v0.1"
     bnb_config = BitsAndBytesConfig(
         load_in_4bit=True,                    
@@ -17,18 +17,18 @@ def eval_few_shot_prompting():
     tokenizer.pad_token = '[PAD]'
     
     dataset = load_dataset("tner/ontonotes5")
-    dataset = preprocess_dataset(dataset, tokenizer, test_size=16)
+    dataset = preprocess_dataset(dataset, tokenizer, validation_size=dataset_size, test_size=dataset_size)
 
-    predicted_entities, label_entities = run_inference(model, tokenizer, dataset["test"]["few_shot_prompting"], batch_size=4)
+    predicted_entities, label_entities = run_inference(model, tokenizer, dataset[split]["few_shot_prompting"], batch_size=4)
     metrics = compute_metrics(predicted_entities, label_entities)
     print()
     print("Few shot prompting metrics:")
     print(f"Precision: {metrics['TOTAL']['precision']} | Recall: {metrics['TOTAL']['recall']}")
 
 
-def eval_supervised_fine_tuning():
+def eval_supervised_fine_tuning(split, dataset_size):
     model_id = "mistralai/Mistral-7B-v0.1"
-    checkpoint = "outputs/checkpoint-1819"
+    checkpoint = "outputs/checkpoint-2000"
     bnb_config = BitsAndBytesConfig(
         load_in_4bit=True,                    
         bnb_4bit_use_double_quant=True,      
@@ -40,9 +40,9 @@ def eval_supervised_fine_tuning():
     tokenizer.pad_token = '[PAD]'
 
     dataset = load_dataset("tner/ontonotes5")
-    dataset = preprocess_dataset(dataset, tokenizer, test_size=16)
+    dataset = preprocess_dataset(dataset, tokenizer, validation_size=dataset_size, test_size=dataset_size)
 
-    predicted_entities, label_entities = run_inference(model, tokenizer, dataset["test"]["example"], batch_size=16)
+    predicted_entities, label_entities = run_inference(model, tokenizer, dataset[split]["example"], batch_size=16)
     print()
     print("Supervised fine-tuning metrics:")
     metrics = compute_metrics(predicted_entities, label_entities)
@@ -50,5 +50,5 @@ def eval_supervised_fine_tuning():
 
 
 if __name__ == "__main__": 
-    eval_few_shot_prompting()
-    eval_supervised_fine_tuning()
+    # eval_few_shot_prompting("test", dataset_size=16)
+    eval_supervised_fine_tuning("validation", dataset_size=16)
